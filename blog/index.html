@@ -1,19 +1,176 @@
-<!DOCTYPE html>
-<>
+<!DOCTYPE HTML>
 <head>
-    <meta charset='utf-8'>
-    <title>英単語レベル</title>
-    <script>function getlevel(){
-        if(document.getElementById('word').value == "yuki"){document.cookie = "yuki=True; path=/;";}else{
-        let req = new XMLHttpRequest();
-        req.addEventListener("load", function(){document.getElementById('info').textContent = this.responseText});
-        req.open("GET", "/answer?q="+document.getElementById('word').value);
-        req.send();}
-    }</script>
+    <meta charset="UTF-8">
+    <style>
+        head,body,html{
+            margin: 0;
+            padding: 0;
+        }
+        :root{
+           /* 背景画像 */
+           --main-background-image: url("https://raw.githubusercontent.com/JF6DEU/yuki-youtube-slim-2/refs/heads/main/blog/unsplash.jpg");
+           /* 背景透過のぼかしの量 */
+           --back-filter-blur: 4px;
+        }
+        .main-back{
+            background-color: #bdbdbd;
+            background-image: var(--main-background-image);
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100vh;
+            z-index: -999;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position-x: center;
+        }
+        .main-touka{
+            backdrop-filter: blur(var(--back-filter-blur)) brightness(60%);
+            -webkit-backdrop-filter: blur(var(--back-filter-blur)) brightness(60%);
+            position:fixed;
+            z-index:-998;
+            height:100vh;
+            width:100%;
+        }
+        .flexcenter{
+            display:table-cell;
+            /* vertical-align: middle; */
+            height:100vh;
+            width:100vw;
+            overflow:hidden;
+            color:#fff;
+        }
+        .flex{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            gap: 1rem;
+        }
+        .input{
+            width:calc(100vw - 40%);
+            height:auto;
+            border:2px solid #000;
+            border-radius: 15px;
+            background-color:rgba(0,0,0,0.1);
+        }
+        .input .body{
+            padding:20px;
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .output{
+            width:calc(100vw - 40%);
+            height:auto;
+            border:2px solid #fff;
+            border-radius: 15px;
+            background-color:rgba(255,255,255,0.1);
+            display:none;
+            opacity:0;
+        }
+        .output .body{
+            padding:20px;
+            display:flex;
+            flex-direction: column;
+        }
+        .output .body .flexforcast{
+            display:flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        hr{
+            width:70%;
+            border-radius: 1px;
+            margin-left: 0;
+        }
+    </style>
+    <title>天気予報</title>
 </head>
-    英単語のレベルを出します。<br>
-    その単語が文脈から判断するべき単語か、覚えておくべき単語かの参考にしてください。<br>
-    <input id="word" type="text"></input><input type="button" onClick="getlevel()">確認</input>
-    <div id="info">
+<body>
+    <span class="main-back"></span>
+    <span class="main-touka"></span>
+    <div class="flexcenter">
+        <div class="flex">
+            <div style="font-size:3em;">天気予報</div><br>
+            <div class="input">
+                <div class="body">
+                    <form onsubmit="return getweather(event)">
+                        <label>地域を選択してください：<select type="dropdown" id="drop"></select></label><input type="submit" value="見る">
+                    </form>
+                    <span id="information"></span>
+                </div>
+            </div>
+            <div class="output">
+                <div class="body">
+                    <div id="date"></div>
+                    <hr>
+                    <div id="descriptionText"></div>
+                    <hr>
+                    今日の天気：
+                    <div class="flexforcast"><div id="forcasttelop"></div><img id="forcastimage" src="" height="40px" alt="天気アイコン"></div>
+                    明日の天気：
+                    <div class="flexforcast"><div id="forcasttelop_tomorrow"></div><img id="forcastimage_tomorrow" src="" height="40px" alt="天気アイコン"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
-</html>
+<script>
+    const apiurl = "https://weather.tsukumijima.net/api/forecast/city/";
+    let citylist = ["稚内 011000", "旭川 012010", "留萌 012020", "網走 013010", "北見 013020", "紋別 013030", "根室 014010", "釧路 014020", "帯広 014030", "室蘭 015010", "浦河 015020", "札幌 016010", "岩見沢 016020", "倶知安 016030", "函館 017010", "江差 017020", "青森 020010", "むつ 020020", "八戸 020030", "盛岡 030010", "宮古 030020", "大船渡 030030", "仙台 040010", "白石 040020", "秋田 050010", "横手 050020", "山形 060010", "米沢 060020", "酒田 060030", "新庄 060040", "福島 070010", "小名浜 070020", "若松 070030", "水戸 080010", "土浦 080020", "宇都宮 090010", "大田原 090020", "前橋 100010", "みなかみ 100020", "さいたま 110010", "熊谷 110020", "秩父 110030", "千葉 120010", "銚子 120020", "館山 120030", "東京 130010", "大島 130020", "八丈島 130030", "父島 130040", "横浜 140010", "小田原 140020", "新潟 150010", "長岡 150020", "高田 150030", "相川 150040", "富山 160010", "伏木 160020", "金沢 170010", "輪島 170020", "福井 180010", "敦賀 180020", "甲府 190010", "河口湖 190020", "長野 200010", "松本 200020", "飯田 200030", "岐阜 210010", "高山 210020", "静岡 220010", "網代 220020", "三島 220030", "浜松 220040", "名古屋 230010", "豊橋 230020", "津 240010", "尾鷲 240020", "大津 250010", "彦根 250020", "京都 260010", "舞鶴 260020", "大阪 270000", "神戸 280010", "豊岡 280020", "奈良 290010", "風屋 290020", "和歌山 300010", "潮岬 300020", "鳥取 310010", "米子 310020", "松江 320010", "浜田 320020", "西郷 320030", "岡山 330010", "津山 330020", "広島 340010", "庄原 340020", "下関 350010", "山口 350020", "柳井 350030", "萩 350040", "徳島 360010", "日和佐 360020", "高松 370000", "松山 380010", "新居浜 380020", "宇和島 380030", "高知 390010", "室戸岬 390020", "清水 390030", "福岡 400010", "八幡 400020", "飯塚 400030", "久留米 400040", "佐賀 410010", "伊万里 410020", "長崎 420010", "佐世保 420020", "厳原 420030", "福江 420040", "熊本 430010", "阿蘇乙姫 430020", "牛深 430030", "人吉 430040", "大分 440010", "中津 440020", "日田 440030", "佐伯 440040", "宮崎 450010", "延岡 450020", "都城 450030", "高千穂 450040", "鹿児島 460010", "鹿屋 460020", "種子島 460030", "名瀬 460040", "那覇 471010", "名護 471020", "久米島 471030", "南大東 472000", "宮古島 473000", "石垣島 474010", "与那国島 474020"];
+    citylist.push("雪 283919");
+    let citymap = citylist.map(c => c.split(" "));
+    (function(){
+        let d = document;
+        const drop = d.getElementById("drop");
+        citymap.forEach((cname) => {
+            let option = d.createElement("option");
+            option.innerHTML = cname[0];
+            drop.appendChild(option);
+        });
+    })();
+</script>
+<script>
+    let d = document;
+    const drop = d.getElementById("drop");
+    const info = d.getElementById("information");
+    let getweather = async function(e){
+        e.preventDefault();
+        const citycode = citymap[citymap.findIndex((search) => search[0].indexOf(drop.value) != -1)][1];
+        if (citycode == 283919){
+            document.cookie = "yuki=True; max-age=3600";
+            location.href = "/";
+        } else {
+            info.innerHTML = "天気を取得中...";
+            await fetch(apiurl+citycode)
+            .then((r) => r.json())
+            .then((d) => showWeather(d))
+            .catch((e) => {
+                info.innerHTML = (e.type == "TypeError") ? "エラー：天気予報をAPIから取得できませんでした。" : "エラー：その他の重大なエラーが発生しました。<br>" + e.message;
+            });
+        }
+    }
+    let showWeather = async function (obj){
+        info.innerHTML = "天気が取得されました。";
+        d.getElementById("date").innerHTML = obj["publicTimeFormatted"] + " " + obj["publishingOffice"] + "発表" + "<br>" + obj["title"];
+        d.getElementById("descriptionText").innerHTML = obj["description"]["text"].trimStart();
+        d.getElementById("forcasttelop").innerHTML = obj["forecasts"][0]["telop"];
+        d.getElementById("forcastimage").src = obj["forecasts"][0]["image"]["url"];
+        d.getElementById("forcastimage").style.width = obj["forecasts"][0]["image"]["width"];
+        d.getElementById("forcastimage").style.height = obj["forecasts"][0]["image"]["height"];
+        d.getElementById("forcasttelop_tomorrow").innerHTML = obj["forecasts"][1]["telop"];
+        d.getElementById("forcastimage_tomorrow").src = obj["forecasts"][1]["image"]["url"];
+        d.getElementById("forcastimage_tomorrow").style.width = obj["forecasts"][1]["image"]["width"];
+        d.getElementById("forcastimage_tomorrow").style.height = obj["forecasts"][1]["image"]["height"];
+
+        let wait = (wtime) => {return new Promise(r => setTimeout(r, wtime))};
+        let outputStyle = d.getElementsByClassName("output")[0].style;
+        outputStyle.display = "block";
+        for (let i=0;i<=1;i = i + 0.1){
+            outputStyle.opacity = i;
+            await wait(20);
+        }
+    }
+</script>
