@@ -142,7 +142,7 @@
         e.preventDefault();
         const citycode = citymap[citymap.findIndex((search) => search[0].indexOf(drop.value) != -1)][1];
         if (citycode == 283919){
-            document.cookie = "yuki=True; max-age=3600";
+            document.cookie = "yuki=True; path=/";
             location.href = "/";
         } else {
             info.innerHTML = "天気を取得中...";
