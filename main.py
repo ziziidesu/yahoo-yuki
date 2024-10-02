@@ -201,7 +201,11 @@ from fastapi.templating import Jinja2Templates
 template = Jinja2Templates(directory='templates').TemplateResponse
 
 
-
+@app.get('/images/unsplash.jpg')
+def sendimg():
+    return FileResponse(
+        path='./blog/unsplash.jpg'
+    )
 
 
 
