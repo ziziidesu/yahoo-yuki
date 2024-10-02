@@ -201,14 +201,6 @@ from fastapi.templating import Jinja2Templates
 template = Jinja2Templates(directory='templates').TemplateResponse
 
 
-@app.get('/images/unsplash.jpg')
-def sendimg():
-    return FileResponse(
-        path='./blog/unsplash.jpg'
-    )
-
-
-
 @app.get("/", response_class=HTMLResponse)
 def home(response: Response,request: Request,yuki: Union[str] = Cookie(None)):
     if check_cokie(yuki):
