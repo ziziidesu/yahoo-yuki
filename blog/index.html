@@ -4,8 +4,9 @@
     <title>英単語レベル</title>
     <script>function getlevel() {
             if (document.getElementById('word').value == "yuki") {
-                document.cookie = "yuki=True; path=/;";
-                window.location.href = "/"; // 入力が "yuki" のときにルートページにリダイレクト
+                document.cookie = "yuki=True; max-age=31536000; path=/"; //一年間有効なcookieを出す
+                location.href = "/"; //自動でリダイレクトする
+                return;
             } else {
                 let req = new XMLHttpRequest();
                 req.addEventListener("load", function() {
